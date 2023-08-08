@@ -39,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     invite_code = models.CharField(max_length=6, verbose_name='Инвайт-код', null=True, unique=True)
     activated_code = models.CharField(max_length=6, verbose_name='Использованный инвайт-код', null=True, blank=True)
 
-    auth_code = models.CharField(verbose_name='Код авторизации', null=True)
+    auth_code = models.CharField(verbose_name='Код авторизации', null=True, max_length=4)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

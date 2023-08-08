@@ -22,4 +22,3 @@ docker exec -it django_service /bin/bash
 <hr>
 <h3>Тесты в Postman</h3>
 https://api.postman.com/collections/27452224-63373f6d-e817-45c2-9b9b-f86c71a16991?access_key=PMAT-01H77XSVDH9Q0YP3MZ0FW95JBF
-<p>Также при тестирование возникла проблема с CSRF-токен, в связи с чем пришлось закомментировать CSRFMiddleware в настройках проекта и добавить кастомный middleware.</p>
