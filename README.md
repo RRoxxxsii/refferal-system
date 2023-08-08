@@ -30,3 +30,6 @@ https://api.postman.com/collections/27452224-63373f6d-e817-45c2-9b9b-f86c71a1699
     <li>Ввод чужого инвайт-кода в профиле. Если пользователь уже вводил код - выводим его.</li>
     <li>В своем профиле пользователь видит номера телефона людей, которые ввели его инвайт-код.</li>
 </ul>
+<hr>
+<h3><a href="http://mishabur.pythonanywhere.com/">Деплой на pythonanywhere.com:</a></h3>
+<p>http://mishabur.pythonanywhere.com/</p>
