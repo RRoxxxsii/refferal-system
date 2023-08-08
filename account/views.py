@@ -26,27 +26,25 @@ class PhoneNumberInputAPIView(CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            mobile = request.data.get('mobile')
-            user, created = User.objects.get_or_create(mobile=mobile)
-            if created:
-                # Генерируем инвайт-код
-                invite_code = generate_invite_code()
-                user.invite_code = invite_code
+        serializer.is_valid(raise_exception=True)
+        mobile = serializer.validated_data['mobile']
+        user, created = User.objects.get_or_create(mobile=mobile)
+        if created:
+            # Генерируем инвайт-код
+            invite_code = generate_invite_code()
+            user.invite_code = invite_code
 
-            # Генерируем код авторизации
-            auth_code = generate_auth_code()
+        # Генерируем код авторизации
+        auth_code = generate_auth_code()
 
-            # Имитация задержки на сервере и отправки сообщения
-            sleep(randint(1, 2))
-            send_sms(f'Ваш код авторизации: {auth_code}', '+12065550100',
-                     [mobile], fail_silently=False)
+        # Имитация задержки на сервере и отправки сообщения
+        sleep(randint(1, 2))
+        send_sms(f'Ваш код авторизации: {auth_code}', '+12065550100',
+                 [mobile], fail_silently=False)
 
-            user.auth_code = auth_code
-            user.save()
-            return Response(data={'message': 'Вам был отправлен код авторизации.'})
-
-        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user.auth_code = auth_code
+        user.save()
+        return Response(data={'message': 'Вам был отправлен код авторизации.'})
 
 
 class AuthCodeInputAPIView(APIView):
@@ -57,18 +55,16 @@ class AuthCodeInputAPIView(APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            auth_code = serializer.data.get('auth_code')
-            try:
-                user = User.objects.get(auth_code=auth_code)
-            except User.DoesNotExist:
-                return Response(data={'message': 'Код авторизации, введенный вами,'
-                                                 ' оказался некорректным'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                login(request=request, user=user)
-                return Response(data={'message': 'Вы успешно авторизованы'})
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        auth_code = serializer.validated_data['auth_code']
+        try:
+            user = User.objects.get(auth_code=auth_code)
+        except User.DoesNotExist:
+            return Response(data={'message': 'Код авторизации, введенный вами,'
+                                             ' оказался некорректным'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            login(request=request, user=user)
+            return Response(data={'message': 'Вы успешно авторизованы'})
 
 
 class InputInviteCode(APIView):
@@ -76,36 +72,34 @@ class InputInviteCode(APIView):
 
     def post(self, request):
         serializer = InviteCodeInputSerializer(data=request.data)
-        if serializer.is_valid():
-            invite_code = request.data.get('invite_code')
+        serializer.is_valid(raise_exception=True)
+        invite_code = serializer.validated_data['invite_code']
 
-            # Пытаемся получить объект пользователя
-            try:
-                user = User.objects.get(invite_code=invite_code)
+        # Пытаемся получить объект пользователя
+        try:
+            user = User.objects.get(invite_code=invite_code)
 
-            except User.DoesNotExist:
-                return Response({'message': 'Пользователь с таким инвайт-кодом не найден.'},
-                                status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({'message': 'Пользователь с таким инвайт-кодом не найден.'},
+                            status=status.HTTP_404_NOT_FOUND)
 
+        else:
+            request_user = request.user
+            # Если пользователь вводит собственный код, то возбуждаем исключение
+            if user == request_user:
+                return Response(data={'message': 'Вы не можете использовать свой собственный инвайт-код.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            activated_code = request_user.activated_code
+            # Если пользователь уже активировал код, возвращаем его
+            if activated_code:
+                return Response(data={'message': f'Вы уже вводили код, вот он: {activated_code}'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            # Если не активирован, присваиваем
             else:
-                request_user = request.user
-                # Если пользователь вводит собственный код, то возбуждаем исключение
-                if user == request_user:
-                    return Response(data={'message': 'Вы не можете использовать свой собственный инвайт-код.'},
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-                activated_code = request_user.activated_code
-                # Если пользователь уже активировал код, возвращаем его
-                if activated_code:
-                    return Response(data={'message': f'Вы уже вводили код, вот он: {activated_code}'},
-                                    status=status.HTTP_400_BAD_REQUEST)
-                # Если не активирован, присваиваем
-                else:
-                    request_user.activated_code = invite_code
-                    request_user.save()
-                return Response(data={'message': 'Вы успешно активировали инвайт-код!'})
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                request_user.activated_code = invite_code
+                request_user.save()
+            return Response(data={'message': 'Вы успешно активировали инвайт-код!'})
 
     def get(self, request):
         # Список пользователей, которые ввели инвайт текущего пользователя
